@@ -3,12 +3,14 @@ from tkinter import ttk, messagebox
 import tkinter.font as tkFont
 import os, tkinter as tk
 from tkinter import ttk, messagebox
+from PIL import Image, ImageTk
+import math
+
 # Paleta de colores
 PRIMARY    = '#2E4053'
 SECONDARY  = '#85C1E9'
 ACCENT     = '#F7DC6F'
 LIGHT_BLUE = '#D6EAF8'
-
 
 class CatapultApp(tk.Tk):
     def __init__(self):
@@ -143,16 +145,19 @@ class CatapultApp(tk.Tk):
 
 
     def create_widgets(self):
+        attack_options = ["120", "130", "140", "150", "160", "170", "180", "190", "200"]
+        L1_options = ["83"]
+        L2_options = ["230"]
+        
         """Interfaz con secciones en Canvas: esquinas redondas, sin bordes grises."""
         LIGHT_BLUE      = '#D6EAF8'
-        SEC_W           = 320
-        GEO_H, ANG_H, KIN_H = 150, 120, 120
-        PAD_X, PAD_Y    = 20, 15
-        OFFSET_Y        = 50
-        SPACING_Y       = 30
-        ENTRY_X_GEO     = 170
-        ENTRY_X_ANG     = 120
-        ENTRY_X_KIN     = 140
+        SEC_W           = 270
+        GEO_H, KIN_H = 130, 370
+        PAD_X, PAD_Y    = 20, 10
+        OFFSET_Y        = 40
+        SPACING_Y       = 25
+        ENTRY_X_GEO     = 200
+        ENTRY_X_KIN     = 220
 
         # — Título —
         lbl_title = ttk.Label(self, text="Mecanismo de Catapulta", style='Header.TLabel')
@@ -165,9 +170,9 @@ class CatapultApp(tk.Tk):
         c_geo.create_text(15, 15, text="Parámetros Geométricos", anchor='nw', fill=PRIMARY,
                           font=('Segoe UI', 12, 'bold'))
 
-        geom_labels = ["Distancia de ataque:", "Longitud L₁:", "Longitud L₂:"]
+        geom_labels = ["Altura de entrada (mm):", "Longitud L₁ (mm):", "Longitud L₂ (mm):"]
         geom_tips   = [
-            "Distancia desde el punto fijo hasta la posición de liberación del proyectil.",
+            "Altura desde la que se liberará la caja en la corredera.",
             "Longitud del primer eslabón desde el punto fijo hasta la primera unión.",
             "Longitud del segundo eslabón, conectando la unión al acoplador."
         ]
@@ -176,83 +181,85 @@ class CatapultApp(tk.Tk):
             # Etiqueta y entrada
             lbl = tk.Label(self, text=txt, bg=LIGHT_BLUE, fg=PRIMARY, font=('Segoe UI', 10))
             c_geo.create_window((15, y), window=lbl, anchor='nw')
-            ent = ttk.Entry(c_geo, width=14)
-            c_geo.create_window((ENTRY_X_GEO, y), window=ent, anchor='nw')
             if i == 0:
-                self.entry_attack = ent
+                cb = ttk.Combobox(c_geo, width=5, values=attack_options, state="readonly")
+                self.entry_attack = cb
             elif i == 1:
-                self.entry_L1 = ent
+                cb = ttk.Combobox(c_geo, width=5, values=L1_options, state="readonly")
+                self.entry_L1 = cb
             else:
-                self.entry_L2 = ent
+                cb = ttk.Combobox(c_geo, width=5, values=L2_options, state="readonly")
+                self.entry_L2 = cb
+
+            cb.current(0)  # Selecciona la primera opción por defecto
+            c_geo.create_window((ENTRY_X_GEO, y), window=cb, anchor='nw')
 
             # Ícono “i” como Canvas widget
-            info_w = tk.Canvas(c_geo, width=16, height=16, bg=LIGHT_BLUE, highlightthickness=0, bd=0)
-            info_w.create_oval(0, 0, 16, 16, fill="#1976d2", outline="")
-            info_w.create_text(8, 8, text="i", fill="white", font=("Segoe UI", 8, "bold"))
-            c_geo.create_window((ENTRY_X_GEO - 30, y), window=info_w, anchor='nw')
-            Tooltip(info_w, geom_tips[i])
+            #info_w = tk.Canvas(c_geo, width=16, height=16, bg=LIGHT_BLUE, highlightthickness=0, bd=0)
+            #info_w.create_oval(0, 0, 16, 16, fill="#1976d2", outline="")
+            #info_w.create_text(8, 8, text="i", fill="white", font=("Segoe UI", 8, "bold"))
+            #c_geo.create_window((ENTRY_X_GEO - 30, y), window=info_w, anchor='nw')
+            #Tooltip(info_w, geom_tips[i])
 
-        # ========== Sección Ángulos ==========
-        c_ang = tk.Canvas(self, width=SEC_W, height=ANG_H, bg=SECONDARY, highlightthickness=0)
-        c_ang.grid(row=2, column=0, padx=PAD_X, pady=PAD_Y, sticky='nw')
-        self.create_rounded_rect(c_ang, 0, 0, SEC_W-1, ANG_H-1, r=20, fill=LIGHT_BLUE, outline='')
-        c_ang.create_text(15, 15, text="Ángulos de Referencia", anchor='nw', fill=PRIMARY,
-                          font=('Segoe UI', 12, 'bold'))
-
-        ang_labels = ["θ₂ (°):", "θ₃ (°):"]
-        ang_tips   = [
-            "Ángulo inicial del eslabón de entrada medido desde la horizontal.",
-            "Ángulo del segundo eslabón respecto a un eje fijo o relativo."
-        ]
-        for i, txt in enumerate(ang_labels):
-            y = OFFSET_Y + i * SPACING_Y
-            lbl = tk.Label(self, text=txt, bg=LIGHT_BLUE, fg=PRIMARY, font=('Segoe UI', 10))
-            c_ang.create_window((15, y), window=lbl, anchor='nw')
-            ent = ttk.Entry(c_ang, width=14)
-            c_ang.create_window((ENTRY_X_ANG, y), window=ent, anchor='nw')
-            if i == 0:
-                self.entry_theta2 = ent
-            else:
-                self.entry_theta3 = ent
-
-            info_w = tk.Canvas(c_ang, width=16, height=16, bg=LIGHT_BLUE, highlightthickness=0, bd=0)
-            info_w.create_oval(0, 0, 16, 16, fill="#1976d2", outline="")
-            info_w.create_text(8, 8, text="i", fill="white", font=("Segoe UI", 8, "bold"))
-            c_ang.create_window((ENTRY_X_ANG - 30, y), window=info_w, anchor='nw')
-            Tooltip(info_w, ang_tips[i])
-
-        # ========== Sección Cinématica ==========
+        # ========== Sección Cinemática (actualizada con subapartados) ==========
         c_kin = tk.Canvas(self, width=SEC_W, height=KIN_H, bg=SECONDARY, highlightthickness=0)
-        c_kin.grid(row=3, column=0, padx=PAD_X, pady=PAD_Y, sticky='nw')
+        c_kin.grid(row=2, column=0, padx=PAD_X, pady=PAD_Y, sticky='nw')
         self.create_rounded_rect(c_kin, 0, 0, SEC_W-1, KIN_H-1, r=20, fill=LIGHT_BLUE, outline='')
         c_kin.create_text(15, 15, text="Parámetros Cinématicos", anchor='nw', fill=PRIMARY,
                           font=('Segoe UI', 12, 'bold'))
 
-        kin_labels = ["ω₂ (rad/s):", "α₂ (rad/s²):"]
-        kin_tips   = [
-            "Velocidad angular del eslabón de entrada. Se expresa en radianes por segundo.",
-            "Aceleración angular del eslabón de entrada. Se mide en rad/s²."
-        ]
-        for i, txt in enumerate(kin_labels):
-            y = OFFSET_Y + i * SPACING_Y
-            lbl = tk.Label(self, text=txt, bg=LIGHT_BLUE, fg=PRIMARY, font=('Segoe UI', 10))
-            c_kin.create_window((15, y), window=lbl, anchor='nw')
-            ent = ttk.Entry(c_kin, width=14)
-            c_kin.create_window((ENTRY_X_KIN, y), window=ent, anchor='nw')
-            if i == 0:
-                self.entry_omega2 = ent
-            else:
-                self.entry_alpha2 = ent
+        self.kin_entries_dict = {}
 
-            info_w = tk.Canvas(c_kin, width=16, height=16, bg=LIGHT_BLUE, highlightthickness=0, bd=0)
-            info_w.create_oval(0, 0, 16, 16, fill="#1976d2", outline="")
-            info_w.create_text(8, 8, text="i", fill="white", font=("Segoe UI", 8, "bold"))
-            c_kin.create_window((ENTRY_X_KIN - 30, y), window=info_w, anchor='nw')
-            Tooltip(info_w, kin_tips[i])
+        # Subapartados: título + campos
+        sections = [
+            ("Eslabón 1:", [
+                ("Velocidad angular ω₁ (rad/s):", "Velocidad angular del eslabón 1 en radianes por segundo."),
+                ("Aceleración angular α₁ (rad/s²):", "Aceleración angular del eslabón 1 en rad/s²."),
+                ["Ángulo de entrada θ₂ (°):", "Ángulo inicial del eslabón de entrada medido desde la horizontal."]
+            ]),
+            ("Eslabón 2:", [
+                ("Velocidad angular ω₂ (rad/s):", "Velocidad angular del eslabón 2 en radianes por segundo."),
+                ("Aceleración angular α₂ (rad/s²):", "Aceleración angular del eslabón 2 en rad/s².")
+            ]),
+            ("Puntos A, B y D:", [
+                ("Velocidad vA (mm/s):", "Velocidad lineal en el punto A."),
+                ("Aceleración aA (mm/s²):", "Aceleración lineal en el punto A."),
+                ("Velocidad vB (mm/s):", "Velocidad lineal en el punto B."),
+                ("Aceleración aB (mm/s²):", "Aceleración lineal en el punto B."),
+                ("Velocidad vD (mm/s):", "Velocidad lineal en el punto D."),
+                ("Aceleración aD (mm/s²):", "Aceleración lineal en el punto D.")
+]           ),
+        ]
+
+        y_offset = OFFSET_Y
+
+        for section_title, fields in sections:
+            # Subapartado (con más espacio arriba)
+            c_kin.create_text(15, y_offset, text=section_title, anchor='nw',
+                              fill=PRIMARY, font=('Segoe UI', 10, 'bold'))
+            y_offset += SPACING_Y - 10  # Espacio después del título
+
+            for label, tip in fields:
+                lbl = tk.Label(self, text=label, bg=LIGHT_BLUE, fg=PRIMARY, font=('Segoe UI', 10))
+                c_kin.create_window((15, y_offset), window=lbl, anchor='nw')
+
+                ent = ttk.Entry(c_kin, width=5)
+                c_kin.create_window((ENTRY_X_KIN, y_offset), window=ent, anchor='nw')
+                clave = label.split(":")[0].strip().replace(" ", "_").lower()
+                self.kin_entries_dict[clave] = ent
+                ent.configure(state="readonly")  # Para que no se puedan editar
+
+                #info_w = tk.Canvas(c_kin, width=16, height=16, bg=LIGHT_BLUE, highlightthickness=0, bd=0)
+                #info_w.create_oval(0, 0, 16, 16, fill="#1976d2", outline="")
+                #info_w.create_text(8, 8, text="i", fill="white", font=("Segoe UI", 8, "bold"))
+                #c_kin.create_window((ENTRY_X_KIN - 30, y_offset), window=info_w, anchor='nw')
+                #Tooltip(info_w, tip)
+
+                y_offset += SPACING_Y  # Espacio entre campos
 
         # ========== Botones centrados ==========
         fb = tk.Frame(self, bg=SECONDARY)
-        fb.grid(row=4, column=0, pady=(0, 20), sticky='ew')
+        fb.grid(row=3, column=0, pady=(0, 20), sticky='ew')
         fb.grid_columnconfigure(0, weight=1)
         fb.grid_columnconfigure(3, weight=1)
 
@@ -276,101 +283,135 @@ class CatapultApp(tk.Tk):
 
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(5, weight=1)
-        
-    def on_calculate(self):
-        """Recupera entradas, valida espacios y separador decimal, convierte a float."""
-        # 1) Captura cruda de cada campo
-        raw = {
-            "Distancia de ataque": self.entry_attack.get(),
-            "Longitud L₁":         self.entry_L1.get(),
-            "Longitud L₂":         self.entry_L2.get(),
-            "Ángulo θ₂":           self.entry_theta2.get(),
-            "Ángulo θ₃":           self.entry_theta3.get(),
-            "Velocidad ω₂":        self.entry_omega2.get(),
-            "Aceleración α₂":      self.entry_alpha2.get(),
+
+        # Cargar y redimensionar la imagen al tamaño del canvas
+        try:
+            imagen_original = Image.open("esquema.jpg")
+            ancho_canvas = self.plot_canvas.winfo_reqwidth()
+            alto_canvas = self.plot_canvas.winfo_reqheight()
+            imagen_redimensionada = imagen_original.resize((ancho_canvas, alto_canvas))
+            self.imagen_tk = ImageTk.PhotoImage(imagen_redimensionada)
+            self.plot_canvas.create_image(40, 170, anchor='nw', image=self.imagen_tk)
+        except Exception as e:
+            print("Error al cargar la imagen:", e)
+
+    def calcular_cinematica(self):
+        # Diccionario con datos de referencia por altura
+        self.data_por_altura = {
+            120: {"theta2": 139, "y0": 0.247},
+            130: {"theta2": 144, "y0": 0.241},
+            140: {"theta2": 147, "y0": 0.235},
+            150: {"theta2": 149, "y0": 0.234},
+            160: {"theta2": 150, "y0": 0.230},
+            170: {"theta2": 151, "y0": 0.229},
+            180: {"theta2": 151, "y0": 0.229},
+            190: {"theta2": 150, "y0": 0.229},
+            200: {"theta2": 149, "y0": 0.234},
         }
 
-        # 2) Detectar vacíos y espacios
-        empty_fields   = [k for k,v in raw.items() if v == ""]
-        single_space   = [k for k,v in raw.items() if v == " "]
-        multi_space    = [k for k,v in raw.items() if v.strip() == "" and len(v) > 1]
-        whitespace_err = bool(empty_fields or single_space or multi_space)
-
-        # 3) Detectar comas
-        comma_multi    = [k for k,v in raw.items() if v.count(",") > 1]
-        comma_single   = [k for k,v in raw.items() if v.count(",") == 1]
-        decimal_err    = bool(comma_multi or comma_single)
-
-        # 4) Si hay ambos tipos de error, mensaje combinado
-        if whitespace_err and decimal_err:
-            messagebox.showerror(
-                "Error de entrada",
-                "Algunas casillas están vacías o contienen solo espacios y otras usan coma como separador decimal.\n"
-                "Por favor ingresa valores válidos y utiliza el punto (`.`) como separador."
-            )
+        try:
+            altura = int(self.entry_attack.get())
+            L1 = float(self.entry_L1.get())
+            L2 = float(self.entry_L2.get())
+        except ValueError:
+            messagebox.showerror("Error", "Por favor selecciona valores válidos para altura, L1 y L2.")
             return
 
-        # 5) Sólo errores de espacios/vacíos
-        if whitespace_err:
-            if multi_space:
-                messagebox.showerror(
-                    "Espacios inválidos",
-                    "Hay múltiples espacios vacíos en los campos:\n" +
-                    "\n".join(multi_space)
-                )
-                return
-            if single_space:
-                messagebox.showerror(
-                    "Espacio aislado",
-                    "El/Los campo(s) " + ", ".join(single_space) +
-                    " contienen un único espacio. Por favor ingresa un valor o bórralo."
-                )
-                return
-            if empty_fields:
-                messagebox.showerror(
-                    "Campos vacíos",
-                    "Los siguientes campos están vacíos:\n" +
-                    "\n".join(empty_fields)
-                )
-                return
+        datos = self.data_por_altura.get(altura)
+        if not datos:
+            messagebox.showerror("Error", f"No hay datos precalculados para altura = {altura}.")
+            return
 
-        # 6) Sólo errores de separador decimal
-        if decimal_err:
-            if comma_multi:
-                messagebox.showerror(
-                    "Separadores decimales",
-                    "Hay múltiples comas (`,`) en los campos:\n" +
-                    "\n".join(comma_multi) +
-                    "\nUsa solo un punto (`.`) como separador."
-                )
-                return
-            if comma_single:
-                messagebox.showerror(
-                    "Separador decimal incorrecto",
-                    "El/Los campo(s) " + ", ".join(comma_single) +
-                    " contienen una coma como separador decimal.\n"
-                    "Por favor utiliza el punto (`.`) en su lugar."
-                )
-                return
+        theta2 = datos["theta2"]
+        y0 = datos["y0"]
+        #altura = int(self.entry_attack.get())
+        #L1 = float(self.entry_L1.get())
+        #L2 = float(self.entry_L2.get())
 
-        # 7) Conversión a float (resto de validación)
+        g = 9.81  # gravedad en m/s²
+        # convertir mm a metros
+        y0_m = y0/1000  
+        L1_m = L1/1000
+        L2_m = L2/1000
+
+        # velocidad de B (caída libre)
+        vB = round(math.sqrt(2*g*altura*0.001),2)
+        # posición de punto A 
+        Ax = L1_m*math.cos(math.radians(theta2))
+        Ay = L1_m*math.sin(math.radians(theta2))
+        # posición de punto B respecto a A
+        rB_Ax = L2_m-Ax	
+        rB_Ay = -Ay
+        # velocidades angulares
+        omega1 = round((vB*rB_Ax)/(Ax*rB_Ay-Ay*rB_Ax),1)
+        omega2 = round((Ax*vB)/(Ax*rB_Ay-Ay*rB_Ax),2)
+        # aceleración del punto B
+        aB=-g
+        # velocidad del punto A
+        vA = round((omega1*math.sqrt(Ax**2+Ay**2)),2)
+
+        
+        #alfa1=(vB*rB_Ay-(-(omega1**2)*rB_Ay)-(-(rB_Ay**2)*Ay))/(Ay*rB_Ay-Ax*rB_Ax)
+
+
+        # Mostrar resultados
+        resultados = {
+            "velocidad_angular_ω₁_(rad/s)": omega1,
+            #"aceleración_angular_α₁_(rad/s²)": alfa1,
+            "ángulo_de_entrada_θ₂_(°)": theta2,
+            
+            "velocidad_angular_ω₂_(rad/s)": omega2,
+            #"aceleración_angular_α₂_(rad/s²)":
+            
+            "velocidad_va_(mm/s)": vA,
+            #"aceleración_aa_(mm/s²)":
+            "velocidad_vb_(mm/s)": vB,
+            "aceleración_ab_(mm/s²)": aB
+            #"velocidad_vd_(mm/s)":
+            #"aceleración_ad_(mm/s²)":
+        }
+
+        for clave, valor in resultados.items():
+            if clave in self.kin_entries_dict:
+                campo = self.kin_entries_dict[clave]
+                campo.configure(state="normal")
+                campo.delete(0, tk.END)
+                campo.insert(0, str(valor))
+                campo.configure(state="readonly")
+
+    def on_calculate(self):
+        """Valida las entradas geométricas y ejecuta los cálculos cinemáticos."""
+
+        raw = {
+            "Altura de entrada": self.entry_attack.get(),
+            "Longitud L₁":        self.entry_L1.get(),
+            "Longitud L₂":        self.entry_L2.get(),
+        }
+
+        # Validación de campos vacíos o con espacios
+        errores = []
+        for k, v in raw.items():
+            if v.strip() == "":
+                errores.append(k)
+            elif "," in v:
+                errores.append(f"{k} (usa punto en lugar de coma)")
+
+        if errores:
+            messagebox.showerror("Error de entrada", "Corrige los siguientes campos:\n" + "\n".join(errores))
+            return
+
         try:
-            attack = float(raw["Distancia de ataque"])
+            attack = float(raw["Altura de entrada"])
             L1     = float(raw["Longitud L₁"])
             L2     = float(raw["Longitud L₂"])
-            theta2 = float(raw["Ángulo θ₂"])
-            theta3 = float(raw["Ángulo θ₃"])
-            omega2 = float(raw["Velocidad ω₂"])
-            alpha2 = float(raw["Aceleración α₂"])
         except ValueError:
-            messagebox.showerror(
-                "Error de entrada",
-                "Por favor ingresa valores numéricos válidos en todos los campos."
-            )
+            messagebox.showerror("Error", "Los valores deben ser numéricos válidos.")
             return
 
-        # TODO: implementar lógica de Grashof, velocidades, aceleraciones, curva...
-        messagebox.showinfo("Listo", "Entradas válidas. Ejecutando cálculos...")
+        # Ejecutar cálculo cinemático y mostrar resultados
+        self.calcular_cinematica()
+        messagebox.showinfo("Listo", "Resultados cinemáticos calculados correctamente.")
+
 
     def on_clear(self):
         """Limpia todos los campos de entrada."""
