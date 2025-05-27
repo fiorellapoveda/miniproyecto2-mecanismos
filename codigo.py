@@ -298,15 +298,15 @@ class CatapultApp(tk.Tk):
     def calcular_cinematica(self):
         # Diccionario con datos de referencia por altura
         self.data_por_altura = {
-            120: {"theta2": 139, "y0": 0.247},
-            130: {"theta2": 144, "y0": 0.241},
-            140: {"theta2": 147, "y0": 0.235},
-            150: {"theta2": 149, "y0": 0.234},
-            160: {"theta2": 150, "y0": 0.230},
-            170: {"theta2": 151, "y0": 0.229},
-            180: {"theta2": 151, "y0": 0.229},
-            190: {"theta2": 150, "y0": 0.229},
-            200: {"theta2": 149, "y0": 0.234},
+            120: {"theta2": 139, "yD": 0.247},
+            130: {"theta2": 144, "yD": 0.241},
+            140: {"theta2": 147, "yD": 0.235},
+            150: {"theta2": 149, "yD": 0.234},
+            160: {"theta2": 150, "yD": 0.230},
+            170: {"theta2": 151, "yD": 0.229},
+            180: {"theta2": 151, "yD": 0.229},
+            190: {"theta2": 150, "yD": 0.229},
+            200: {"theta2": 149, "yD": 0.234},
         }
 
         try:
@@ -323,14 +323,14 @@ class CatapultApp(tk.Tk):
             return
 
         theta2 = datos["theta2"]
-        y0 = datos["y0"]
+        yD = datos["y0"]
         #altura = int(self.entry_attack.get())
         #L1 = float(self.entry_L1.get())
         #L2 = float(self.entry_L2.get())
 
         g = 9.81  # gravedad en m/s²
         # convertir mm a metros
-        y0_m = y0/1000  
+        yD_m = yD/1000  
         L1_m = L1/1000
         L2_m = L2/1000
 
@@ -349,10 +349,6 @@ class CatapultApp(tk.Tk):
         aB=-g
         # velocidad del punto A
         vA = round((omega1*math.sqrt(Ax**2+Ay**2)),2)
-
-        
-        #alfa1=(vB*rB_Ay-(-(omega1**2)*rB_Ay)-(-(rB_Ay**2)*Ay))/(Ay*rB_Ay-Ax*rB_Ax)
-
 
         # Mostrar resultados
         resultados = {
