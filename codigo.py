@@ -151,13 +151,13 @@ class CatapultApp(tk.Tk):
         
         """Interfaz con secciones en Canvas: esquinas redondas, sin bordes grises."""
         LIGHT_BLUE      = '#D6EAF8'
-        SEC_W           = 270
+        SEC_W           = 280
         GEO_H, KIN_H = 130, 370
         PAD_X, PAD_Y    = 20, 10
         OFFSET_Y        = 40
         SPACING_Y       = 25
         ENTRY_X_GEO     = 200
-        ENTRY_X_KIN     = 220
+        ENTRY_X_KIN     = 205
 
         # — Título —
         lbl_title = ttk.Label(self, text="Mecanismo de Catapulta", style='Header.TLabel')
@@ -223,11 +223,11 @@ class CatapultApp(tk.Tk):
             ]),
             ("Puntos A, B y D:", [
                 ("Velocidad vA (mm/s):", "Velocidad lineal en el punto A."),
-                ("Aceleración aA (mm/s²):", "Aceleración lineal en el punto A."),
+                ("Aceleración aA (m/s²):", "Aceleración lineal en el punto A."),
                 ("Velocidad vB (mm/s):", "Velocidad lineal en el punto B."),
-                ("Aceleración aB (mm/s²):", "Aceleración lineal en el punto B."),
+                ("Aceleración aB (m/s²):", "Aceleración lineal en el punto B."),
                 ("Velocidad vD (mm/s):", "Velocidad lineal en el punto D."),
-                ("Aceleración aD (mm/s²):", "Aceleración lineal en el punto D.")
+                ("Aceleración aD (m/s²):", "Aceleración lineal en el punto D.")
 ]           ),
         ]
 
@@ -243,7 +243,7 @@ class CatapultApp(tk.Tk):
                 lbl = tk.Label(self, text=label, bg=LIGHT_BLUE, fg=PRIMARY, font=('Segoe UI', 10))
                 c_kin.create_window((15, y_offset), window=lbl, anchor='nw')
 
-                ent = ttk.Entry(c_kin, width=5)
+                ent = ttk.Entry(c_kin, width=9, justify="center")
                 c_kin.create_window((ENTRY_X_KIN, y_offset), window=ent, anchor='nw')
                 clave = label.split(":")[0].strip().replace(" ", "_").lower()
                 self.kin_entries_dict[clave] = ent
@@ -298,15 +298,15 @@ class CatapultApp(tk.Tk):
     def calcular_cinematica(self):
         # Diccionario con datos de referencia por altura
         self.data_por_altura = {
-            120: {"theta2": 139, "yD": 0.247},
-            130: {"theta2": 144, "yD": 0.241},
-            140: {"theta2": 147, "yD": 0.235},
-            150: {"theta2": 149, "yD": 0.234},
-            160: {"theta2": 150, "yD": 0.230},
-            170: {"theta2": 151, "yD": 0.229},
-            180: {"theta2": 151, "yD": 0.229},
-            190: {"theta2": 150, "yD": 0.229},
-            200: {"theta2": 149, "yD": 0.234},
+            120: {"theta2": 139, "theta3": -16, "yD": 0.247},
+            130: {"theta2": 144, "theta3": 12.2, "yD": 0.241},
+            140: {"theta2": 147, "theta3": -8.7, "yD": 0.235},
+            150: {"theta2": 149, "theta3": -5.6, "yD": 0.234},
+            160: {"theta2": 150, "theta3": -2.7, "yD": 0.230},
+            170: {"theta2": 151, "theta3": 0, "yD": 0.229},
+            180: {"theta2": 151, "theta3": 2.3, "yD": 0.229},
+            190: {"theta2": 150, "theta3": 4.6, "yD": 0.229},
+            200: {"theta2": 149, "theta3": 6.7,"yD": 0.234},
         }
 
         try:
@@ -323,12 +323,14 @@ class CatapultApp(tk.Tk):
             return
 
         theta2 = datos["theta2"]
-        yD = datos["y0"]
+        theta3 = datos["theta3"]
+        yD = datos["yD"]
         #altura = int(self.entry_attack.get())
         #L1 = float(self.entry_L1.get())
         #L2 = float(self.entry_L2.get())
 
         g = 9.81  # gravedad en m/s²
+        rD = 0.122
         # convertir mm a metros
         yD_m = yD/1000  
         L1_m = L1/1000
@@ -340,31 +342,41 @@ class CatapultApp(tk.Tk):
         Ax = L1_m*math.cos(math.radians(theta2))
         Ay = L1_m*math.sin(math.radians(theta2))
         # posición de punto B respecto a A
-        rB_Ax = L2_m-Ax	
-        rB_Ay = -Ay
+        rB_Ax = L1_m*math.cos(math.radians(theta3))	
+        rB_Ay = L1_m*math.sin(math.radians(theta3))	
         # velocidades angulares
-        omega1 = round((vB*rB_Ax)/(Ax*rB_Ay-Ay*rB_Ax),1)
-        omega2 = round((Ax*vB)/(Ax*rB_Ay-Ay*rB_Ax),2)
+        omega2 = round(vB/(rB_Ax+(rB_Ax/Ay)),3)
+        omega1 = round(omega2*(rB_Ax/Ay),3)
         # aceleración del punto B
         aB=-g
         # velocidad del punto A
-        vA = round((omega1*math.sqrt(Ax**2+Ay**2)),2)
+        vA = round((omega1*math.sqrt(Ax**2+Ay**2)*1000),1)
+        # aceleraciones angulares
+        alfa2 = round(((omega1**2)*Ax*Ay+g*Ax+(omega2**2)*rB_Ax*Ay-(omega2**2)*rB_Ay*Ax-(omega1**2)*Ay**Ax)/(rB_Ax*Ay-rB_Ay*Ax),1)
+        alfa1 = round(((omega1**2)*Ax-alfa2*rB_Ax+(omega2**2)*rB_Ax)/(Ax),1)
+        # velocidad de D
+        vD = round(omega1*rD*1000,1)
+        # aceleración de A
+        aA = round((alfa1*L1_m-(omega1**2)*L1_m)*0.001,1)
+        # aceleración de D
+        aD = round((alfa1*rD-(omega1**2)*rD)*0.001,1)
+
 
         # Mostrar resultados
         resultados = {
             "velocidad_angular_ω₁_(rad/s)": omega1,
-            #"aceleración_angular_α₁_(rad/s²)": alfa1,
+            "aceleración_angular_α₁_(rad/s²)": alfa1,
             "ángulo_de_entrada_θ₂_(°)": theta2,
             
             "velocidad_angular_ω₂_(rad/s)": omega2,
-            #"aceleración_angular_α₂_(rad/s²)":
+            "aceleración_angular_α₂_(rad/s²)": alfa2,
             
             "velocidad_va_(mm/s)": vA,
-            #"aceleración_aa_(mm/s²)":
+            "aceleración_aa_(m/s²)": aA,
             "velocidad_vb_(mm/s)": vB,
-            "aceleración_ab_(mm/s²)": aB
-            #"velocidad_vd_(mm/s)":
-            #"aceleración_ad_(mm/s²)":
+            "aceleración_ab_(m/s²)": aB,
+            "velocidad_vd_(mm/s)": vD,
+            "aceleración_ad_(m/s²)": aD
         }
 
         for clave, valor in resultados.items():
